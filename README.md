@@ -36,18 +36,18 @@ Adjacency is explicitly permitted: a meeting ending at `11:00 UTC` does not conf
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| **Language** | Java 21 |
-| **Framework** | Spring Boot 3.4.3 |
-| **Security** | Spring Security 6 + JJWT |
-| **Database** | PostgreSQL 17 |
-| **ORM / Persistence** | Spring Data JPA / Hibernate |
-| **Database Migrations** | Flyway |
-| **Caching** | Redis 7 + Spring Data Redis |
-| **Monitoring** | Spring Boot Actuator |
-| **API Documentation** | Springdoc OpenAPI (Swagger UI) |
-| **Build & Containerization** | Maven, Docker, Docker Compose |
+| Layer                        | Technology                     |
+| ---------------------------- | ------------------------------ |
+| **Language**                 | Java 21                        |
+| **Framework**                | Spring Boot 3.4.3              |
+| **Security**                 | Spring Security 6 + JJWT       |
+| **Database**                 | PostgreSQL 17                  |
+| **ORM / Persistence**        | Spring Data JPA / Hibernate    |
+| **Database Migrations**      | Flyway                         |
+| **Caching**                  | Redis 7 + Spring Data Redis    |
+| **Monitoring**               | Spring Boot Actuator           |
+| **API Documentation**        | Springdoc OpenAPI (Swagger UI) |
+| **Build & Containerization** | Maven, Docker, Docker Compose  |
 
 ---
 
@@ -81,19 +81,25 @@ Let $k$ be the number of occurrences generated for a series (bounded by 12 month
 ## Quick Start (Running via Docker Compose)
 
 ### 1. Clone & Build
+
 ```bash
 docker compose up -d --build
 ```
 
 ### 2. Verify Services
+
 - **Spring Boot API**: http://localhost:8080
 - **Swagger UI**: http://localhost:8080/swagger-ui.html
 - **Actuator Health**: http://localhost:8080/actuator/health
 
+For a step-by-step walkthrough of how each feature works, see the [STARTUP_AND_DEMO_GUIDE.md](./STARTUP_AND_DEMO_GUIDE.md).
+
 ---
 
 ## Demo Credentials
+
 After `docker compose up`, log in as the seeded admin to create/manage rooms:
+
 - email: `admin@roombooker.local`
 - password: `Admin@123`
 
@@ -103,24 +109,25 @@ Three rooms (Falcon, Orion, Zenith) are pre-seeded so bookings can be created im
 
 ## API Summary
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/api/v1/auth/register` | Register user & get JWT token |
-| `POST` | `/api/v1/auth/login` | Authenticate & get JWT token |
-| `GET` | `/api/v1/rooms` | List all meeting rooms (Redis Cached) |
-| `POST` | `/api/v1/rooms` | Create meeting room (ADMIN) |
-| `POST` | `/api/v1/bookings` | Create one-off room booking |
-| `POST` | `/api/v1/bookings/recurring` | Create recurring booking series |
-| `GET` | `/api/v1/bookings/occurrences?roomId=...` | Search occurrences by date range |
-| `PATCH` | `/api/v1/bookings/series/{seriesId}` | Edit series (`THIS`, `THIS_AND_FUTURE`, `WHOLE_SERIES`) |
-| `DELETE` | `/api/v1/bookings/occurrences/{id}` | Cancel single occurrence |
-| `DELETE` | `/api/v1/bookings/series/{seriesId}` | Cancel entire recurring series |
+| Method   | Endpoint                                  | Description                                             |
+| -------- | ----------------------------------------- | ------------------------------------------------------- |
+| `POST`   | `/api/v1/auth/register`                   | Register user & get JWT token                           |
+| `POST`   | `/api/v1/auth/login`                      | Authenticate & get JWT token                            |
+| `GET`    | `/api/v1/rooms`                           | List all meeting rooms (Redis Cached)                   |
+| `POST`   | `/api/v1/rooms`                           | Create meeting room (ADMIN)                             |
+| `POST`   | `/api/v1/bookings`                        | Create one-off room booking                             |
+| `POST`   | `/api/v1/bookings/recurring`              | Create recurring booking series                         |
+| `GET`    | `/api/v1/bookings/occurrences?roomId=...` | Search occurrences by date range                        |
+| `PATCH`  | `/api/v1/bookings/series/{seriesId}`      | Edit series (`THIS`, `THIS_AND_FUTURE`, `WHOLE_SERIES`) |
+| `DELETE` | `/api/v1/bookings/occurrences/{id}`       | Cancel single occurrence                                |
+| `DELETE` | `/api/v1/bookings/series/{seriesId}`      | Cancel entire recurring series                          |
 
 For full details, see [API.md](./API.md).
 
 ---
 
 ## Assumptions & Documented Edge-Case Decisions
+
 - **Monthly recurrence on a day that doesn't exist in a given month** (e.g. the 31st, or a "5th Wednesday"): that month's occurrence is **skipped**, not shifted to the nearest valid day. This avoids surprising the organiser with a meeting on a date they didn't ask for.
 - **DST spring-forward gap** (a local time that doesn't exist, e.g. 2:30 AM on the US "spring forward" day): the request is **rejected** with `InvalidMeetingTimeException` rather than silently shifted forward, so the organiser is told explicitly instead of getting a meeting at an unexpected time.
 - **DST fall-back overlap** (a local time that happens twice): the system resolves to the **earlier** of the two valid UTC offsets, and this is a fixed, documented default rather than configurable per-request in this version.
@@ -130,6 +137,7 @@ For full details, see [API.md](./API.md).
 ---
 
 ## Failure Handling
+
 - All application exceptions funnel through `GlobalExceptionHandler`, which maps domain exceptions to specific HTTP status codes and a consistent JSON error shape (`ApiErrorResponse`) rather than leaking stack traces.
 - Recurring series creation is fully transactional (`@Transactional` in `BookingService.createRecurringBooking`): if any generated occurrence conflicts, the exception is a `RuntimeException` subtype, so Spring rolls back the whole transaction — no partially-created series is ever left in the database.
 - Redis is used only for room-metadata caching (`RoomService`, `@Cacheable`/`@CacheEvict`), never for booking correctness, so a Redis outage degrades room lookups back to PostgreSQL rather than breaking booking creation.
@@ -142,10 +150,13 @@ For full details, see [API.md](./API.md).
 > Run `docker compose up -d postgres redis` before `./mvnw test` — the context test and Flyway migration need a live database connection.
 
 Run unit & integration test suite:
+
 ```bash
 ./mvnw test
 ```
+
 Tests cover:
+
 - Daily, Weekly (multi-day), Monthly date & Nth-weekday recurrence.
 - DST spring-forward gap detection and fall-back overlap resolution.
 - Half-open interval conflict detection $[start, end)$.
