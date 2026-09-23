@@ -1,0 +1,107 @@
+{
+  "info": {
+    "name": "RoomBooker API Collection",
+    "description": "Postman Collection for RoomBooker - Meeting Room Booking System with Recurring Meetings",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth - Register",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Abhilash Reddy\",\n  \"email\": \"abhilash@example.com\",\n  \"password\": \"Password123\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/v1/auth/register",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "v1", "auth", "register"]
+        }
+      }
+    },
+    {
+      "name": "Auth - Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"abhilash@example.com\",\n  \"password\": \"Password123\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/v1/auth/login",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "v1", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "Rooms - Get All Rooms",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/api/v1/rooms",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "v1", "rooms"]
+        }
+      }
+    },
+    {
+      "name": "Bookings - Create One-Off Booking",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"roomId\": \"{{room_id}}\",\n  \"title\": \"Architecture Review\",\n  \"startTime\": \"2026-10-05T10:00:00Z\",\n  \"endTime\": \"2026-10-05T11:00:00Z\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/v1/bookings",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "v1", "bookings"]
+        }
+      }
+    },
+    {
+      "name": "Bookings - Create Recurring Booking",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"roomId\": \"{{room_id}}\",\n  \"title\": \"Weekly Engineering Sync\",\n  \"startDate\": \"2026-10-05\",\n  \"endDate\": \"2026-12-28\",\n  \"startTime\": \"10:00:00\",\n  \"endTime\": \"11:00:00\",\n  \"timezone\": \"Asia/Kolkata\",\n  \"recurrenceType\": \"WEEKLY\",\n  \"intervalValue\": 1,\n  \"weekdays\": \"MONDAY,WEDNESDAY\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/v1/bookings/recurring",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "v1", "bookings", "recurring"]
+        }
+      }
+    }
+  ]
+}
