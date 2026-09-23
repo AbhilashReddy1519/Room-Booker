@@ -64,7 +64,7 @@ erDiagram
     rooms ||--o{ booking_occurrences : hosts
 ```
 
-For full DDL schema and foreign keys, see [ER_DIAGRAM.md](file:///c:/Users/ABHILASH%20REDDY/projects/roombooker/ER_DIAGRAM.md).
+For full DDL schema and foreign keys, see [ER_DIAGRAM.md](./ER_DIAGRAM.md).
 
 ---
 
@@ -92,6 +92,15 @@ docker compose up -d --build
 
 ---
 
+## Demo Credentials
+After `docker compose up`, log in as the seeded admin to create/manage rooms:
+- email: `admin@roombooker.local`
+- password: `Admin@123`
+
+Three rooms (Falcon, Orion, Zenith) are pre-seeded so bookings can be created immediately without any manual setup.
+
+---
+
 ## API Summary
 
 | Method | Endpoint | Description |
@@ -107,11 +116,30 @@ docker compose up -d --build
 | `DELETE` | `/api/v1/bookings/occurrences/{id}` | Cancel single occurrence |
 | `DELETE` | `/api/v1/bookings/series/{seriesId}` | Cancel entire recurring series |
 
-For full details, see [API.md](file:///c:/Users/ABHILASH%20REDDY/projects/roombooker/API.md).
+For full details, see [API.md](./API.md).
+
+---
+
+## Assumptions & Documented Edge-Case Decisions
+- **Monthly recurrence on a day that doesn't exist in a given month** (e.g. the 31st, or a "5th Wednesday"): that month's occurrence is **skipped**, not shifted to the nearest valid day. This avoids surprising the organiser with a meeting on a date they didn't ask for.
+- **DST spring-forward gap** (a local time that doesn't exist, e.g. 2:30 AM on the US "spring forward" day): the request is **rejected** with `InvalidMeetingTimeException` rather than silently shifted forward, so the organiser is told explicitly instead of getting a meeting at an unexpected time.
+- **DST fall-back overlap** (a local time that happens twice): the system resolves to the **earlier** of the two valid UTC offsets, and this is a fixed, documented default rather than configurable per-request in this version.
+- **Recurrence horizon** is capped at `roombooker.recurrence.max-horizon-months` (default 12, per `application.yml`) to bound how many rows a single series can materialize.
+- **Attendee IDs that don't correspond to a real user** are silently skipped during booking creation rather than failing the whole request — an organiser can add attendees who may not be registered yet without the booking itself failing.
+
+---
+
+## Failure Handling
+- All application exceptions funnel through `GlobalExceptionHandler`, which maps domain exceptions to specific HTTP status codes and a consistent JSON error shape (`ApiErrorResponse`) rather than leaking stack traces.
+- Recurring series creation is fully transactional (`@Transactional` in `BookingService.createRecurringBooking`): if any generated occurrence conflicts, the exception is a `RuntimeException` subtype, so Spring rolls back the whole transaction — no partially-created series is ever left in the database.
+- Redis is used only for room-metadata caching (`RoomService`, `@Cacheable`/`@CacheEvict`), never for booking correctness, so a Redis outage degrades room lookups back to PostgreSQL rather than breaking booking creation.
+- **Known limitation (documented):** conflict checking is enforced at the application layer via an indexed range query (`BookingOccurrenceRepository.findConflicts`) inside a transaction, but there is **no PostgreSQL-level exclusion constraint** (`EXCLUDE USING GIST`) as a final safety net against a true concurrent double-booking race. Application-level checking inside a transaction closes the window to the duration of one request, but is not a hard database guarantee under concurrent writers.
 
 ---
 
 ## Testing
+
+> Run `docker compose up -d postgres redis` before `./mvnw test` — the context test and Flyway migration need a live database connection.
 
 Run unit & integration test suite:
 ```bash
