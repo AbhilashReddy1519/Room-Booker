@@ -294,9 +294,16 @@ public class BookingService {
                     .build();
 
                 BookingSeries savedNewSeries = bookingSeriesRepository.save(newSeries);
-                Room targetRoom = request.roomId() != null
-                    ? roomRepository.findById(request.roomId()).orElseThrow()
-                    : futureOccurrences.isEmpty() ? roomRepository.findAll().get(0) : futureOccurrences.get(0).getRoom();
+                Room targetRoom;
+                if (request.roomId() != null) {
+                    targetRoom = roomRepository.findById(request.roomId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Room not found with ID: " + request.roomId()));
+                } else if (!futureOccurrences.isEmpty()) {
+                    targetRoom = futureOccurrences.get(0).getRoom();
+                } else {
+                    throw new InvalidMeetingTimeException(
+                        "roomId is required when editing a series with no existing future occurrences to infer it from.");
+                }
 
                 List<OccurrenceTime> newTimes = recurrenceEngine.generateOccurrences(savedNewSeries);
                 List<BookingOccurrence> newOccurrences = new ArrayList<>();
@@ -331,7 +338,16 @@ public class BookingService {
                 if (request.weekdays() != null) series.setWeekdays(request.weekdays());
 
                 BookingSeries saved = bookingSeriesRepository.save(series);
-                Room room = existing.isEmpty() ? roomRepository.findAll().get(0) : existing.get(0).getRoom();
+                Room room;
+                if (request.roomId() != null) {
+                    room = roomRepository.findById(request.roomId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Room not found with ID: " + request.roomId()));
+                } else if (!existing.isEmpty()) {
+                    room = existing.get(0).getRoom();
+                } else {
+                    throw new InvalidMeetingTimeException(
+                        "roomId is required when editing a series with no existing occurrences to infer it from.");
+                }
 
                 List<OccurrenceTime> newTimes = recurrenceEngine.generateOccurrences(saved);
                 List<BookingOccurrence> regenerated = new ArrayList<>();
