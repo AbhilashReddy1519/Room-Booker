@@ -31,6 +31,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ApiErrorResponse> handleUserConflict(ConflictException ex) {
+        ApiErrorResponse response = new ApiErrorResponse(ex.getCode(), ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
     @ExceptionHandler(InvalidMeetingTimeException.class)
     public ResponseEntity<ApiErrorResponse> handleInvalidTime(InvalidMeetingTimeException ex) {
         ApiErrorResponse response = new ApiErrorResponse("INVALID_MEETING_TIME", ex.getMessage());

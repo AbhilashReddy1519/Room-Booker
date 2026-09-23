@@ -1,19 +1,20 @@
 package com.roombooker.service;
 
-import com.roombooker.dto.RoomRequest;
-import com.roombooker.dto.RoomResponse;
-import com.roombooker.exception.InvalidMeetingTimeException;
-import com.roombooker.exception.ResourceNotFoundException;
-import com.roombooker.repository.RoomRepository;
-import com.roombooker.rooms.Room;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
+import com.roombooker.dto.RoomRequest;
+import com.roombooker.dto.RoomResponse;
+import com.roombooker.exception.ConflictException;
+import com.roombooker.exception.ResourceNotFoundException;
+import com.roombooker.repository.RoomRepository;
+import com.roombooker.rooms.Room;
 
 @Service
 public class RoomService {
@@ -28,7 +29,7 @@ public class RoomService {
     @Transactional
     public RoomResponse createRoom(RoomRequest request) {
         if (roomRepository.existsByName(request.name())) {
-            throw new InvalidMeetingTimeException("Room with name '" + request.name() + "' already exists");
+            throw new ConflictException("Room with name '" + request.name() + "' already exists", "ROOM_NAME_CONFLICT");
         }
 
         Room room = Room.builder()

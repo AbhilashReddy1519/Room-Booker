@@ -1,17 +1,22 @@
 package com.roombooker.service;
 
-import com.roombooker.dto.*;
-import com.roombooker.exception.InvalidMeetingTimeException;
-import com.roombooker.repository.UserRepository;
-import com.roombooker.security.JwtTokenProvider;
-import com.roombooker.users.User;
-import com.roombooker.users.UserRole;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.roombooker.dto.AuthResponse;
+import com.roombooker.dto.LoginRequest;
+import com.roombooker.dto.RegisterRequest;
+import com.roombooker.dto.UserResponse;
+import com.roombooker.exception.ConflictException;
+import com.roombooker.exception.ResourceNotFoundException;
+import com.roombooker.repository.UserRepository;
+import com.roombooker.security.JwtTokenProvider;
+import com.roombooker.users.User;
+import com.roombooker.users.UserRole;
 
 @Service
 public class AuthService {
@@ -31,7 +36,7 @@ public class AuthService {
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
-            throw new InvalidMeetingTimeException("User already exists with email: " + request.email());
+            throw new ConflictException("User already exists with email: " + request.email(), "USER_EMAIL_CONFLICT");
         }
 
         User user = User.builder()
@@ -59,7 +64,7 @@ public class AuthService {
         );
 
         User user = userRepository.findByEmail(request.email())
-            .orElseThrow(() -> new InvalidMeetingTimeException("User not found"));
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         String token = tokenProvider.generateToken(authentication, user.getId());
         UserResponse userResponse = toUserResponse(user);
