@@ -9,6 +9,8 @@ import com.roombooker.recurrence.TimezoneResolver;
 import com.roombooker.repository.*;
 import com.roombooker.rooms.Room;
 import com.roombooker.users.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +23,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class BookingService {
+
+    private static final Logger log = LoggerFactory.getLogger(BookingService.class);
 
     private final MeetingRepository meetingRepository;
     private final MeetingAttendeeRepository meetingAttendeeRepository;
@@ -75,6 +79,8 @@ public class BookingService {
         );
 
         if (!conflicts.isEmpty()) {
+            log.warn("Booking conflict: room={} requestedStart={} requestedEnd={} conflictingBookingId={}",
+                room.getId(), request.startTime(), request.endTime(), conflicts.get(0).getId());
             List<ConflictDetail> details = conflicts.stream()
                 .map(c -> new ConflictDetail(
                     c.getOccurrenceDate(),
@@ -110,6 +116,9 @@ public class BookingService {
             .build();
 
         BookingOccurrence savedOccurrence = bookingOccurrenceRepository.save(occurrence);
+
+        log.info("Created one-off booking: meetingId={} room={} organizer={} start={} end={}",
+            savedMeeting.getId(), room.getId(), organizerId, request.startTime(), request.endTime());
 
         BookingOccurrenceResponse occurrenceResp = toOccurrenceResponse(savedOccurrence);
         UserResponse organizerResp = authService.toUserResponse(organizer);
@@ -197,11 +206,16 @@ public class BookingService {
         }
 
         if (!conflictsFound.isEmpty()) {
+            log.warn("Recurring booking rejected: room={} organizer={} {} conflicting occurrence(s), first conflict on {}",
+                room.getId(), organizerId, conflictsFound.size(), conflictsFound.get(0).date());
             // Rollback whole recurring series creation
             throw new BookingConflictException("Recurring booking conflicts with existing meetings", conflictsFound);
         }
 
         List<BookingOccurrence> savedOccurrences = bookingOccurrenceRepository.saveAll(occurrencesToSave);
+
+        log.info("Created recurring series: seriesId={} meetingId={} room={} occurrenceCount={}",
+            savedSeries.getId(), savedMeeting.getId(), room.getId(), savedOccurrences.size());
 
         List<BookingOccurrenceResponse> occurrenceResponses = savedOccurrences.stream()
             .map(this::toOccurrenceResponse)
@@ -371,6 +385,8 @@ public class BookingService {
             .map(this::toOccurrenceResponse)
             .collect(Collectors.toList());
 
+        log.info("Updated series: seriesId={} scope={}", seriesId, request.scope());
+
         return toSeriesResponse(finalSeries, finalOccurrences);
     }
 
@@ -380,6 +396,7 @@ public class BookingService {
             .orElseThrow(() -> new ResourceNotFoundException("Booking occurrence not found with ID: " + occurrenceId));
 
         occurrence.setStatus(BookingStatus.CANCELLED);
+        log.info("Cancelled occurrence: occurrenceId={}", occurrenceId);
         bookingOccurrenceRepository.save(occurrence);
     }
 
@@ -392,6 +409,7 @@ public class BookingService {
         for (BookingOccurrence bo : occurrences) {
             bo.setStatus(BookingStatus.CANCELLED);
         }
+        log.info("Cancelled series: seriesId={} occurrenceCount={}", seriesId, occurrences.size());
         bookingOccurrenceRepository.saveAll(occurrences);
     }
 
