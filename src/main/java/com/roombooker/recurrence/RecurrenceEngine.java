@@ -1,7 +1,6 @@
 package com.roombooker.recurrence;
 
 import com.roombooker.booking.BookingSeries;
-import com.roombooker.booking.RecurrenceType;
 import com.roombooker.exception.InvalidMeetingTimeException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
