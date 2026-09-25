@@ -3,6 +3,7 @@ package com.roombooker.exception;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -18,10 +19,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BookingConflictException.class)
     public ResponseEntity<ApiErrorResponse> handleConflict(BookingConflictException ex) {
         ApiErrorResponse response = new ApiErrorResponse(
-            "BOOKING_CONFLICT",
-            ex.getMessage(),
-            ex.getConflicts()
-        );
+                "BOOKING_CONFLICT",
+                ex.getMessage(),
+                ex.getConflicts());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
@@ -46,14 +46,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiErrorResponse> handleValidationErrors(MethodArgumentNotValidException ex) {
         List<String> details = ex.getBindingResult().getFieldErrors().stream()
-            .map(FieldError::getDefaultMessage)
-            .collect(Collectors.toList());
+                .map(FieldError::getDefaultMessage)
+                .collect(Collectors.toList());
         ApiErrorResponse response = new ApiErrorResponse(
-            "VALIDATION_FAILED",
-            "Request validation failed",
-            details,
-            true
-        );
+                "VALIDATION_FAILED",
+                "Request validation failed",
+                details,
+                true);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
@@ -66,18 +65,22 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex) {
         ApiErrorResponse response = new ApiErrorResponse(
-            "DATA_INTEGRITY_VIOLATION",
-            "Database constraint violation occurred. Room may have become unavailable concurrently."
-        );
+                "DATA_INTEGRITY_VIOLATION",
+                "Database constraint violation occurred. Room may have become unavailable concurrently.");
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiErrorResponse> handleAccessDenied(AccessDeniedException ex) {
+        ApiErrorResponse response = new ApiErrorResponse("FORBIDDEN", "Access denied");
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleGeneric(Exception ex) {
         ApiErrorResponse response = new ApiErrorResponse(
-            "INTERNAL_SERVER_ERROR",
-            ex.getMessage() != null ? ex.getMessage() : "An unexpected error occurred"
-        );
+                "INTERNAL_SERVER_ERROR",
+                ex.getMessage() != null ? ex.getMessage() : "An unexpected error occurred");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 }
